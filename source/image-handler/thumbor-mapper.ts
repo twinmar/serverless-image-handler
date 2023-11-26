@@ -377,6 +377,9 @@ export class ThumborMapper {
         currentEdits.greyBackground = true;
         break;
       }
+      case "pad": {
+        currentEdits.pad = true;
+      }
       case "animated": {
         currentEdits.animated = filterValue.toLowerCase() !== "false";
         break;

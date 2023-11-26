@@ -45,5 +45,5 @@ export enum ContentTypes {
   TIFF = "image/tiff",
   GIF = "image/gif",
   SVG = "image/svg+xml",
-  AVIF = "image/avif",
+  AVIF = "image/avif"
 }
