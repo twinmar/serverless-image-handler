@@ -232,6 +232,10 @@ export class ImageHandler {
       edits.resize = {};
       edits.resize.fit = ImageFitTypes.INSIDE;
       return;
+      if (edits.fit) {
+        edits.resize.fit = ImageFitTypes.CONTAIN;
+        edits.resize.background = "white";
+      }
     }
     const resize = this.validateResizeInputs(edits.resize);
 
