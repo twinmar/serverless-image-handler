@@ -37,7 +37,7 @@ export class QueryParamMapper {
       const result: Result = {};
 
       Object.entries(queryParameters).forEach(([param, value]) => {
-        if (value !== undefined && QueryParamMapper.QUERY_PARAM_MAPPING[param]) {
+        if (value !== undefined && QueryParamMapper.QUERY_PARAM_MAPPING[param] && !(param == "format" && value == "auto")) {
           const { path, key, transform } = QueryParamMapper.QUERY_PARAM_MAPPING[param];
 
           // Traverse and create nested objects as needed
