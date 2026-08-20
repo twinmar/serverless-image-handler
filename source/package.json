@@ -1,6 +1,5 @@
 {
   "name": "source",
-  "version": "6.2.4",
   "private": true,
   "description": "ESLint and prettier dependencies to be used within the solution",
   "license": "Apache-2.0",
@@ -8,15 +7,44 @@
     "name": "Amazon Web Services",
     "url": "https://aws.amazon.com/solutions"
   },
+  "workspaces": [
+    "container",
+    "data-models"
+  ],
+  "overrides": {
+    "qs": "^6.14.2",
+    "zod": "^4.3.5",
+    "minimatch@3": "3.1.5",
+    "minimatch@9": "9.0.8",
+    "ajv@6": "6.14.0",
+    "brace-expansion": "2.0.3",
+    "picomatch@2": "2.3.2",
+    "picomatch@4": "4.0.4",
+    "flatted": "3.4.2",
+    "handlebars": "4.7.9",
+    "path-to-regexp": "0.1.13",
+    "yaml@1": "1.10.3",
+    "lodash": "^4.18.0",
+    "brace-expansion@1": "1.1.13",
+    "brace-expansion@2": "2.0.3",
+    "diff@4": "4.0.4"
+  },
   "scripts": {
-    "lint": "npx eslint . --ext .ts",
+    "lint": "npx eslint . --ext .ts --fix",
     "prettier-format": "npx prettier --config .prettierrc.yml '**/*.ts' --write",
     "install:custom-resource": "cd ./custom-resource && npm run clean && npm ci",
     "install:image-handler": "cd ./image-handler && npm run clean && npm ci",
-    "install:dependencies": "npm run install:custom-resource && npm run install:image-handler"
+    "install:demo-ui": "cd ./demo-ui && npm run clean && npm ci",
+    "install:metrics-utils": "cd ./metrics-utils && npm ci",
+    "install:data-models": "cd ./data-models && npm ci",
+    "install:management-lambda": "cd ./management-lambda && npm ci",
+    "install:utility-lambda": "cd ./utility-lambda && npm ci",
+    "install:admin-ui": "cd ./admin-ui && npm ci && npm run build",
+    "install:v8-custom-resource": "cd ./v8-custom-resource && npm run clean && npm ci",
+    "install:dependencies": "npm run install:metrics-utils && npm run install:custom-resource && npm run install:image-handler && npm run install:demo-ui && npm run install:data-models && npm run install:management-lambda && npm run install:utility-lambda && npm run install:admin-ui && npm run install:v8-custom-resource"
   },
   "devDependencies": {
-    "@types/node": "^20.7.2",
+    "@types/node": "^20.10.4",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "eslint": "^8.50.0",
@@ -27,14 +55,7 @@
     "eslint-plugin-jsdoc": "^46.8.2",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^4.2.1",
-    "prettier": "~2.8.8"
-  },
-  "overrides": {
-    "semver": "7.5.4",
-    "word-wrap": "npm:@aashutoshrathi/word-wrap"
-  },
-  "resolutions": {
-    "semver": "7.5.4",
-    "word-wrap": "aashutoshrathi/word-wrap"
+    "prettier": "~2.8.8",
+    "prettier-plugin-organize-imports": "^4.2.0"
   }
 }

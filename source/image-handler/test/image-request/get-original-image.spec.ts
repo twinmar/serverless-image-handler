@@ -1,55 +1,78 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { mockAwsS3 } from "../mock";
+import { mockS3Commands } from "../mock";
 
-import S3 from "aws-sdk/clients/s3";
-import SecretsManager from "aws-sdk/clients/secretsmanager";
+import { S3Client } from "@aws-sdk/client-s3";
+import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 
 import { ImageRequest } from "../../image-request";
 import { ImageHandlerError, StatusCodes } from "../../lib";
 import { SecretProvider } from "../../secret-provider";
 
 describe("getOriginalImage", () => {
-  const s3Client = new S3();
-  const secretsManager = new SecretsManager();
+  const s3Client = new S3Client();
+  const secretsManager = new SecretsManagerClient();
   const secretProvider = new SecretProvider(secretsManager);
 
-  beforeEach(() => {
-    jest.resetAllMocks();
-  });
+  const mockImage = Buffer.from("SampleImageContent\n");
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  // Mock for SdkStream body
+  const mockImageBody = {
+    transformToByteArray: async () => new Uint8Array(mockImage),
+    transformToString: async (encoding) => mockImage.toString(encoding || "utf-8"),
+  };
+
+  beforeEach(() => {
+    // reset all mockS3Commands mocks
+    Object.values(mockS3Commands).forEach((mock, key) => {
+      mock.mockReset();
+    });
   });
 
   it("Should pass if the proper bucket name and key are supplied, simulating an image file that can be retrieved", async () => {
     // Mock
-    mockAwsS3.getObject.mockImplementationOnce(() => ({
-      promise() {
-        return Promise.resolve({ Body: Buffer.from("SampleImageContent\n") });
-      },
-    }));
+    mockS3Commands.getObject.mockResolvedValue({ Body: mockImageBody });
 
     // Act
     const imageRequest = new ImageRequest(s3Client, secretProvider);
     const result = await imageRequest.getOriginalImage("validBucket", "validKey");
 
     // Assert
-    expect(mockAwsS3.getObject).toHaveBeenCalledWith({
+    expect(mockS3Commands.getObject).toHaveBeenCalledWith({
       Bucket: "validBucket",
       Key: "validKey",
     });
-    expect(result.originalImage).toEqual(Buffer.from("SampleImageContent\n"));
+    expect(result.originalImage).toEqual(mockImage);
+  });
+
+  it("Should throw an error if an invalid file signature is found, simulating an unsupported image type", async () => {
+    // Mock
+    mockS3Commands.getObject.mockResolvedValueOnce({
+      Body: mockImageBody,
+      ContentType: "binary/octet-stream",
+    });
+
+    // Act
+    const imageRequest = new ImageRequest(s3Client, secretProvider);
+
+    // Assert
+    try {
+      await imageRequest.getOriginalImage("validBucket", "validKey");
+    } catch (error) {
+      expect(mockS3Commands.getObject).toHaveBeenCalledWith({
+        Bucket: "validBucket",
+        Key: "validKey",
+      });
+      expect(error.status).toEqual(StatusCodes.INTERNAL_SERVER_ERROR);
+    }
   });
 
   it("Should throw an error if an invalid bucket or key name is provided, simulating a non-existent original image", async () => {
     // Mock
-    mockAwsS3.getObject.mockImplementationOnce(() => ({
-      promise() {
-        return Promise.reject(new ImageHandlerError(StatusCodes.NOT_FOUND, "NoSuchKey", "SimulatedException"));
-      },
-    }));
+    mockS3Commands.getObject.mockRejectedValue(
+      new ImageHandlerError(StatusCodes.NOT_FOUND, "NoSuchKey", "SimulatedException")
+    );
 
     // Act
     const imageRequest = new ImageRequest(s3Client, secretProvider);
@@ -58,7 +81,7 @@ describe("getOriginalImage", () => {
     try {
       await imageRequest.getOriginalImage("invalidBucket", "invalidKey");
     } catch (error) {
-      expect(mockAwsS3.getObject).toHaveBeenCalledWith({
+      expect(mockS3Commands.getObject).toHaveBeenCalledWith({
         Bucket: "invalidBucket",
         Key: "invalidKey",
       });
@@ -68,13 +91,9 @@ describe("getOriginalImage", () => {
 
   it("Should throw an error if an unknown problem happens when getting an object", async () => {
     // Mock
-    mockAwsS3.getObject.mockImplementationOnce(() => ({
-      promise() {
-        return Promise.reject(
-          new ImageHandlerError(StatusCodes.INTERNAL_SERVER_ERROR, "InternalServerError", "SimulatedException")
-        );
-      },
-    }));
+    mockS3Commands.getObject.mockRejectedValue(
+      new ImageHandlerError(StatusCodes.INTERNAL_SERVER_ERROR, "InternalServerError", "SimulatedException")
+    );
 
     // Act
     const imageRequest = new ImageRequest(s3Client, secretProvider);
@@ -83,11 +102,11 @@ describe("getOriginalImage", () => {
     try {
       await imageRequest.getOriginalImage("invalidBucket", "invalidKey");
     } catch (error) {
-      expect(mockAwsS3.getObject).toHaveBeenCalledWith({
+      expect(mockS3Commands.getObject).toHaveBeenCalledWith({
         Bucket: "invalidBucket",
         Key: "invalidKey",
       });
-      expect(error.status).toEqual(StatusCodes.INTERNAL_SERVER_ERROR);
+      expect(error.status).toEqual(StatusCodes.NOT_FOUND);
     }
   });
 
@@ -102,27 +121,24 @@ describe("getOriginalImage", () => {
       { hex: [0x49, 0x49, 0x2a, 0x00], expected: "image/tiff" },
       { hex: [0x4d, 0x4d, 0x00, 0x2a], expected: "image/tiff" },
       { hex: [0x47, 0x49, 0x46, 0x38], expected: "image/gif" },
+      { hex: [0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66], expected: "image/avif" },
     ])("Should pass and infer $expected content type if there is no extension", async ({ hex, expected }) => {
       // Mock
-      mockAwsS3.getObject.mockImplementationOnce(() => ({
-        promise() {
-          return Promise.resolve({
-            ContentType: contentType,
-            Body: Buffer.from(new Uint8Array(hex)),
-          });
-        },
-      }));
+      mockS3Commands.getObject.mockResolvedValue({
+        ContentType: contentType,
+        Body: { transformToByteArray: async () => new Uint8Array(hex) },
+      });
 
       // Act
       const imageRequest = new ImageRequest(s3Client, secretProvider);
       const result = await imageRequest.getOriginalImage("validBucket", "validKey");
 
       // Assert
-      expect(mockAwsS3.getObject).toHaveBeenCalledWith({
+      expect(mockS3Commands.getObject).toHaveBeenCalledWith({
         Bucket: "validBucket",
         Key: "validKey",
       });
-      expect(result.originalImage).toEqual(Buffer.from(new Uint8Array(hex)));
+      expect(result.originalImage).toEqual(Buffer.from(hex));
       expect(result.contentType).toEqual(expected);
     });
   });

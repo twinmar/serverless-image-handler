@@ -4,12 +4,13 @@
 export enum CustomResourceActions {
   SEND_ANONYMOUS_METRIC = "sendMetric",
   PUT_CONFIG_FILE = "putConfigFile",
-  COPY_S3_ASSETS = "copyS3assets",
   CREATE_UUID = "createUuid",
   CHECK_SOURCE_BUCKETS = "checkSourceBuckets",
+  CHECK_FIRST_BUCKET_REGION = "checkFirstBucketRegion",
   CHECK_SECRETS_MANAGER = "checkSecretsManager",
   CHECK_FALLBACK_IMAGE = "checkFallbackImage",
   CREATE_LOGGING_BUCKET = "createCloudFrontLoggingBucket",
+  VALIDATE_EXISTING_DISTRIBUTION = "validateExistingDistribution",
 }
 
 export enum CustomResourceRequestTypes {

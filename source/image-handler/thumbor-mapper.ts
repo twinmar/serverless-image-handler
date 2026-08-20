@@ -148,6 +148,7 @@ export class ThumborMapper {
       ImageFormatTypes.TIFF,
       ImageFormatTypes.WEBP,
       ImageFormatTypes.GIF,
+      ImageFormatTypes.AVIF,
     ];
 
     if (acceptedValues.includes(imageFormatType)) {
@@ -206,6 +207,7 @@ export class ThumborMapper {
           ImageFormatTypes.TIFF,
           ImageFormatTypes.HEIF,
           ImageFormatTypes.GIF,
+          ImageFormatTypes.AVIF,
         ].includes(format)
       ) {
         return format;
@@ -341,7 +343,9 @@ export class ThumborMapper {
         break;
       }
       case "rotate": {
-        currentEdits.rotate = Number(filterValue);
+        // When filterValue is empty, set rotate to undefined to trigger autoOrient()
+        // This aligns with Sharp's behavior where rotate() without parameters calls autoOrient()
+        currentEdits.rotate = filterValue === "" ? undefined : Number(filterValue);
         break;
       }
       case "sharpen": {
@@ -355,8 +359,10 @@ export class ThumborMapper {
         break;
       }
       case "strip_exif":
+        currentEdits.stripExif = true;
+        break;
       case "strip_icc": {
-        currentEdits.rotate = null;
+        currentEdits.stripIcc = true;
         break;
       }
       case "upscale": {
@@ -376,6 +382,18 @@ export class ThumborMapper {
       }
       case "fit": {
         currentEdits.fit = true;
+      }
+      case "animated": {
+        currentEdits.animated = filterValue.toLowerCase() !== "false";
+        break;
+      }
+      case "smart_crop": {
+        const [faceIndex, padding] = filterValue.split(",");
+        currentEdits.smartCrop = {
+          faceIndex: faceIndex ? parseInt(faceIndex) : undefined,
+          padding: padding ? parseInt(padding) : undefined,
+        };
+        break;
       }
     }
 

@@ -5,6 +5,345 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.0.5] - 2026-05-11
+
+### Fixed
+- Migration issue preventing users from upgrading past major version v8.0.0 [#644](https://github.com/aws-solutions/dynamic-image-transformation-for-amazon-cloudfront/issues/644)
+- Animated content in the .gif format had the abiltiy to be converted to non-animated image formats, breaking the animation and serving a still image
+
+### Security
+- Bump `fast-xml-parser` to 5.7.0 to mitigate [CVE-2026-41650](https://github.com/advisories/GHSA-gh4j-gqv2-49f6)
+
+## [8.0.4] - 2026-04-20
+
+### Security
+
+- Bump `@aws-amplify/ui-react` to 6.15.3 and `aws-amplify` to 6.16.4 to resolve transitive `lodash` vulnerabilities: [CVE-2026-2950](https://nvd.nist.gov/vuln/detail/CVE-2026-2950), [CVE-2026-4800](https://nvd.nist.gov/vuln/detail/CVE-2026-4800)
+- Bump `vite` to 6.4.2 to mitigate [CVE-2026-39363](https://nvd.nist.gov/vuln/detail/CVE-2026-39363) and [CVE-2026-39365](https://nvd.nist.gov/vuln/detail/CVE-2026-39365)
+- Bump `qs` to 6.14.2 to mitigate [CVE-2026-2391](https://nvd.nist.gov/vuln/detail/CVE-2026-2391)
+
+## [8.0.3] - 2026-03-02
+
+### Added
+
+- `CorsOriginParameter` to restrict image processing endpoint to specific origin, default to `*` [#624](https://github.com/aws-solutions/dynamic-image-transformation-for-amazon-cloudfront/issues/624)
+- added `no-store`, `no-cache` cache control headers on management api
+
+### Changed
+
+- restrict management api to admin-ui cloudfront origin, preventing arbitrary origins being trusted on api
+- fix `stripExif`, `stripIcc` transforms and `autoOrient` logic [#623](https://github.com/aws-solutions/dynamic-image-transformation-for-amazon-cloudfront/issues/623)
+- remove default Sharp image size limit and support the limit as environment variable on container [#632](https://github.com/aws-solutions/dynamic-image-transformation-for-amazon-cloudfront/issues/632)
+- move to built-in `node:crypto`
+- added `verboseDescription` to log image processing errors at a different verbosity than the HTTP response
+- narrowed resource for logs actions to specific container log group
+- fix e2e test setup in `management-lambda` package to clear ddb table instead of delete/recreate
+
+### Security
+
+- Bump `systeminformation` to mitigate [CVE-2026-26318](https://avd.aquasec.com/nvd/cve-2026-26318) and [CVE-2026-26280](https://avd.aquasec.com/nvd/cve-2026-26280)
+- Bump `aws-cdk-lib` to mitigate several CVE's related to `minimatch` and `ajv`: [CVE-2026-26996](https://avd.aquasec.com/nvd/2026/cve-2026-26996/), [CVE-2026-27903](https://avd.aquasec.com/nvd/2026/cve-2026-27903/), [CVE-2026-27904](https://avd.aquasec.com/nvd/2026/cve-2026-27904/), [CVE-2025-69873](https://avd.aquasec.com/nvd/cve-2025-69873)
+- Bump several `aws-sdk/*` packages to mitigate CVE's related to `fast-xml-parser`: [CVE-2026-25896](https://nvd.nist.gov/vuln/detail/CVE-2026-25896) and [CVE-2026-26278](https://nvd.nist.gov/vuln/detail/CVE-2026-26278)
+
+## [8.0.2] - 2026-01-07
+
+### Security
+
+- Version bump `qs` to mitigate [CVE-2025-15284](https://nvd.nist.gov/vuln/detail/CVE-2025-15284)
+
+## [8.0.1] - 2025-12-18
+
+### Security
+
+- Bump `systeminformation` to mitigate [CVE-2025-68154](https://github.com/advisories/GHSA-wphj-fx3q-84ch)
+
+### Added
+
+- Support watermark with policy create/edit on web ui
+
+### Changed
+
+- upgrade lambda runtime to nodejs22 [#628](https://github.com/aws-solutions/dynamic-image-transformation-for-amazon-cloudfront/issues/628)
+- refactor log retention to default 10 years with all cw log groups [#620](https://github.com/aws-solutions/dynamic-image-transformation-for-amazon-cloudfront/pull/620)
+- fix output quality optimization to use integer values [#622](https://github.com/aws-solutions/dynamic-image-transformation-for-amazon-cloudfront/issues/622)
+- pass next token correctly for list policy operation on ui
+- move auto format selection to CF function and refactor `dit-accept` header normalization to improve cache hit
+- corrected auto-optimization logic for static optimization configuration
+- use dynamodb local image from public ecr for integration tests
+- fix backtracking prone regex in data-models
+
+## [8.0.0] - 2025-11-17
+
+### Added
+
+#### Admin UI and Configuration Management
+
+- Admin UI built with React and TypeScript for configuration management
+- CRUD operations for Origins, Transformation Policies, and Mappings
+- Authentication integration with Amazon Cognito User Pools
+- Real-time form validation and AWS Cloudscape Design System components
+
+#### Management API and Backend Services
+
+- RESTful management API using Amazon API Gateway
+- DynamoDB integration with single-table design for configuration storage
+- Lambda-based management functions with AWS SDK v3 integration
+- OpenAPI specification for API documentation
+- Comprehensive error handling and structured logging
+- Pagination support on list APIs
+
+#### ECS-Based Container Architecture for Image Processing Engine
+
+- Amazon ECS Fargate-based image processing engine
+- Express.js-based REST API server with Docker containerization
+- Auto-scaling capabilities and t-shirt sizing deployment options (Small, Medium, Large, X-Large)
+- Container health check endpoints
+- CloudFront Function for header normalization to improve cache hit ratio
+- URL validation and sanitization
+- Caching policy with DIT specific custom cache keys (`dit-host`, `dit-accept`, `dit-dpr`, `dit-viewport-width`)
+
+#### Origin
+
+- Support for S3 and external HTTPS image sources
+- S3 URL helper utilities for secure access
+- Connection management for external origin sources
+- Origin validation and error handling
+
+#### Transformation Policy
+
+- Declarative transformation policy system with schema validation
+- Support for **one** default transformation policy as fallback
+- Auto-optimization based on client hints (`Sec-ch-viewport-width`, `Sec-ch-dpr`, `Accept` headers)
+- Conditional transformations based on request headers and query parameters
+- Policy and transformation override capabilities via query string in request
+
+#### Mapping (Routing Rules)
+
+- Path-based mapping to route based on request path
+- Host header-based mapping for multi-tenant support and routing on host-header
+- Support for configuring policy with the mappings/routing rules
+
+#### Data Models and Validation
+
+- Comprehensive TypeScript data models using Zod for runtime validation
+- Strict type safety across all configuration entities
+- Request validation and sanitization
+
+## [7.0.8] - 2025-10-07
+
+### Added
+
+- Added deprecation notice for S3 Object Lambda architecture usage
+
+## [7.0.7] - 2025-09-22
+
+### Security
+
+- Bumped `axios` to 1.12.2 to mitigate [CVE-2025-58754](https://avd.aquasec.com/nvd/cve-2025-58754)
+
+### Changed
+
+- Modified sourcebucketpattern to allow valid s3 bucket names
+
+### Removed
+
+- AppRegistry application at resource level
+
+## [7.0.6] - 2025-07-28
+
+### Security
+
+- Bump `form-data` to mitigate [CVE-2025-7783](https://github.com/advisories/GHSA-fjxv-7rqg-78g4)
+
+## [7.0.5] - 2025-07-07
+
+### Changed
+
+- Migrated to [AWS SDK for JavaScript v3](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/introduction/)
+- Bundling instruction for sharp module as per [cross-platform installation instruction](https://sharp.pixelplumbing.com/install/#npm-v10)
+- Bumped dependencies
+
+### Fixed
+
+- Return image metadata for all cases by default using [withMetadata()](https://sharp.pixelplumbing.com/api-output/#withmetadata)
+- In thumbor-styled requests, align `filters:rotate()` with sharp [rotate behavior](https://sharp.pixelplumbing.com/api-operation/#rotate), if no angle is provided `autoOrient()` will be called
+
+## [7.0.4] - 2025-06-09
+
+### Security
+
+- Bump `tar-fs` to mitigate [CVE-2025-48387](https://avd.aquasec.com/nvd/cve-2025-48387)
+- Bump `aws-cdk-lib` to mitigate [GHSA-5pq3-h73f-66hr](https://github.com/advisories/GHSA-5pq3-h73f-66hr)
+
+## [7.0.3] - 2025-05-10
+
+### Fixed
+
+- `SOLUTION_VERSION` environment variable in metrics lambda construct
+
+## [7.0.2] - 2025-04-09
+
+### Security
+
+- Bump aws-cdk-lib to `2.188.0`
+- Update solution metrics lambda runtime to `nodejs22.x`
+
+## [7.0.1] - 2025-03-14
+
+### Changed
+
+- Updated metrics module to support identical metrics for different resources
+- Updated aws-cdk-lib and aws-cdk package versions
+
+### Security
+
+- Upgraded esbuild to v0.25.0 for advisory [GHSA-67mh-4wv8-2f99](https://github.com/advisories/GHSA-67mh-4wv8-2f99)
+- Upgraded axios to 1.8.2 for advisory [GHSA-jr5f-v2jv-69x6](https://github.com/axios/axios/security/advisories/GHSA-jr5f-v2jv-69x6)
+
+### Fixed
+
+- Minor eslint warnings
+
+## [7.0.0] - 2025-01-27
+
+### Changed
+
+- Location of API Gateway infrastructure resources
+- **Breaking** New condition on API gateway will cause a delete/create of ApiGateway::Deployment on stack update
+- **Breaking:** Exception thrown on invalid resize parameters [#463](https://github.com/aws-solutions/serverless-image-handler/pull/463)
+- Code formatting to align with ESLint rules
+- **Breaking** Reduced passthrough of errors from external APIs to response body. Errors will still be logged.
+- Modified CloudFront logging bucket to have versioning enabled by default
+- CloudFront behaviour to redirect http requests to https rather than throwing forbidden error
+- Set-Cookie was added to list of deny-listed response headers
+- Name of solution from Serverless Image Handler on AWS to Dynamic Image Transformation for Amazon CloudFront.
+
+### Added
+
+- Ability to enable origin shield through a deployment parameter
+- Ability to deploy solution without creating a CloudFront distribution
+- CloudFront function to normalize accept headers when AutoWebP is enabled
+- Alternative infrastructure using S3 Object Lambda to overcome 6 MB response size limit
+- Query param named expires which can be used to define when a generated image should no longer be accessible
+- Ability to include smart_crop as a filter for Thumbor style requests, taking advantage of AWS Rekognition face cropping
+- Ability to set CloudWatch log retention period to Infinite
+- Ability to specify Sharp input image size limit [#465](https://github.com/aws-solutions/serverless-image-handler/issues/465) [#476](https://github.com/aws-solutions/serverless-image-handler/pull/476)
+- Query parameter based image editing [#184](https://github.com/aws-solutions/serverless-image-handler/issues/184)
+- Query parameter normalization to improve cache hit rate
+- CloudWatch dashboard to improve Solution observability
+- Additional anonymized metrics to help understand how the solution is being used, identify areas of improvement, and drive future roadmap decisions.
+
+### Removed
+
+- Accept header being used in cache policy when AutoWebP is disabled
+
+### Fixed
+
+- Broken URLs in Signature and Fallback Image template parameters
+
+## [6.3.3] - 2024-12-27
+
+### Fixed
+
+- Overlays not checking for valid S3 buckets
+- Failures when updating deployments created in version 6.1.0 and prior [#559](https://github.com/aws-solutions/serverless-image-handler/issues/559)
+
+### Security
+
+- Added allowlist on sharp operations. [Info](https://docs.aws.amazon.com/solutions/latest/serverless-image-handler/create-and-use-image-requests.html#restricted-operations)
+- Added deny list on custom headers for base64 encoded requests. [Info](https://docs.aws.amazon.com/solutions/latest/serverless-image-handler/create-and-use-image-requests.html#include-custom-response-headers)
+- Added inference of Content-Type header if S3 Metadata provides an unsupported value
+
+## [6.3.2] - 2024-11-22
+
+### Fixed
+
+- Upgrade cross-spawn to v7.0.6 for vulnerability [CVE-2024-9506](https://github.com/advisories/GHSA-5j4c-8p2g-v4jx)
+
+## [6.3.1] - 2024-10-02
+
+### Fixed
+
+- Base-64 encoded overlayWith call requiring strings in top/left options rather than numbers
+- CloudFront anonymized metrics missing for deployments outside of us-east-1
+
+## [6.3.0] - 2024-09-09
+
+### Added
+
+- Additional anonymized metrics system to help understand how the solution is being used, identify areas of improvement, and drive future roadmap decisions.
+
+### Changed
+
+- Cdk update to 2.151.0
+- Default log retention to 180 days
+- Cache-control header on fallback images to use (in order of priority), fallback image metadata, header provided in image request, and default cache control [#563](https://github.com/aws-solutions/serverless-image-handler/issues/563)
+
+### Security
+
+- Upgraded micromatch to v4.0.8 for vulnerability CVE-2024-4067
+
+## [6.2.7] - 2024-08-19
+
+### Security
+
+- Upgraded axios to v1.7.4 for vulnerability CVE-2024-39338
+
+## [6.2.6] - 2024-06-27
+
+### Added
+
+- StackId tag to CloudFrontLoggingBucket and its bucket name as a CfnOutput [#529](https://github.com/aws-solutions/serverless-image-handler/issues/529)
+- Test case to verify UTF-8 support in object key [#320](https://github.com/aws-solutions/serverless-image-handler/pull/320)
+- Test cases to verify crop functionality [#459](https://github.com/aws-solutions/serverless-image-handler/pull/459)
+- VERSION.txt and build script change to auto-update local package versions
+- S3:bucket-name tag for defining which source bucket to use in thumbor style requests [#521](https://github.com/aws-solutions/serverless-image-handler/pull/521)
+- Ability to override whether an image should be animated [#456](https://github.com/aws-solutions/serverless-image-handler/issues/456)
+- Support for 8-bit depth AVIF image type inference [#360](https://github.com/aws-solutions/serverless-image-handler/issues/360)
+
+### Changed
+
+- Decreased permissions allotted to CustomResource Lambda and ImageHandler Lambda
+- cdk update to 2.124.0
+- aws-solutions-constructs update to 2.51.0
+- SourceBucketsParameter to require explicit bucket names
+- Demo-ui dependency update
+- Demo-ui to be a package and manage script/stylesheet dependencies through NPM
+- Modified JPEG SOI marker parsing to only check first 2 bytes [#429]
+
+### Security
+
+- Upgraded follow-redirects to v1.15.6 for vulnerability CVE-2024-28849
+- Upgraded braces to v3.0.3 for vulnerability CVE-2024-4068
+
+### Removed
+
+- Unused CopyS3Assets custom resource
+
+### Fixed
+
+- Some error messages indicating incorrect file types
+- Solution version and id not being passed to Backend Lambda
+- Thumbor-style URL matching being overly permissive
+
+## [6.2.5] - 2024-01-03
+
+### Fixed
+
+- Ensure accurate image metadata when generating Amazon Rekognition compatible images [#374](https://github.com/aws-solutions/serverless-image-handler/issues/374)
+- Exclude demo-ui-config from being deleted upon BucketDeployment update sync when updating to a new version
+
+### Changed
+
+- Overlay requests with an overlay image with one or both dimensions greater than the base image now returns a 400 bad request status with the message "Image to overlay must have same dimensions or smaller", previously returned a 500 internal error [#405](https://github.com/aws-solutions/serverless-image-handler/issues/405)
+- cdk update to 2.118.0
+- typescript update to 5.3.3
+- GIF files without multiple pages are now treated as non-animated, allowing all filters to be used on them [#460](https://github.com/aws-solutions/serverless-image-handler/issues/460)
+
+### Security
+
+- Upgraded axios to v1.6.5 for vulnerability CVE-2023-26159
+
 ## [6.2.4] - 2023-12-06
 
 ### Changed

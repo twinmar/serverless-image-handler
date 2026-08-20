@@ -288,6 +288,20 @@ describe("filter", () => {
     expect(edits).toEqual(expectedResult);
   });
 
+  it("Should pass if the filter is successfully translated from Thumbor:quality()", () => {
+    // Arrange
+    const edit = "filters:quality(50)";
+    const filetype = ImageFormatTypes.AVIF;
+
+    // Act
+    const thumborMapper = new ThumborMapper();
+    const edits = thumborMapper.mapFilter(edit, filetype);
+
+    // Assert
+    const expectedResult = { avif: { quality: 50 } };
+    expect(edits).toEqual(expectedResult);
+  });
+
   it("Should return undefined if an unsupported file type is provided", () => {
     // Arrange
     const edit = "filters:quality(50)";
@@ -416,7 +430,7 @@ describe("filter", () => {
     const edits = thumborMapper.mapFilter(edit, filetype);
 
     // Assert
-    const expectedResult = { rotate: null };
+    const expectedResult = { stripExif: true };
     expect(edits).toEqual(expectedResult);
   });
 
@@ -430,7 +444,7 @@ describe("filter", () => {
     const edits = thumborMapper.mapFilter(edit, filetype);
 
     // Assert
-    const expectedResult = { rotate: null };
+    const expectedResult = { stripIcc: true };
     expect(edits).toEqual(expectedResult);
   });
 
@@ -697,6 +711,269 @@ describe("filter", () => {
             left: "0",
             top: "0",
           },
+        },
+      },
+    };
+    expect(edits).toEqual(expectedResult.edits);
+  });
+
+  it("Should pass if false is interpreted as non-animated", () => {
+    // Arrange
+    const path = "/filters:animated(fAlSe)/test-image-001.jpg";
+
+    // Act
+    const thumborMapper = new ThumborMapper();
+    const edits = thumborMapper.mapPathToEdits(path);
+
+    // Assert
+    const expectedResult = {
+      edits: {
+        animated: false,
+      },
+    };
+    expect(edits).toEqual(expectedResult.edits);
+  });
+
+  it("Should pass if empty value is interpreted as animated", () => {
+    // Arrange
+    const path = "/filters:animated()/test-image-001.jpg";
+
+    // Act
+    const thumborMapper = new ThumborMapper();
+    const edits = thumborMapper.mapPathToEdits(path);
+
+    // Assert
+    const expectedResult = {
+      edits: {
+        animated: true,
+      },
+    };
+    expect(edits).toEqual(expectedResult.edits);
+  });
+
+  it("Should pass if non-false value is interpreted as animated", () => {
+    // Arrange
+    const path = "/filters:animated(ABCDEF)/test-image-001.jpg";
+
+    // Act
+    const thumborMapper = new ThumborMapper();
+    const edits = thumborMapper.mapPathToEdits(path);
+
+    // Assert
+    const expectedResult = {
+      edits: {
+        animated: true,
+      },
+    };
+    expect(edits).toEqual(expectedResult.edits);
+  });
+
+  it("Should pass if smart crop filter is provided with no values", () => {
+    // Arrange
+    const path = "filters:smart_crop()/test-image-001.jpg";
+
+    // Act
+    const thumborMapper = new ThumborMapper();
+    const edits = thumborMapper.mapPathToEdits(path);
+
+    // Assert
+    const expectedResult = {
+      edits: {
+        smartCrop: {
+          faceIndex: undefined,
+          padding: undefined,
+        },
+      },
+    };
+    expect(edits).toEqual(expectedResult.edits);
+  });
+
+  it("Should pass if smart crop filter is provided with valid numbers", () => {
+    // Arrange
+    const path = "filters:smart_crop(1,40)/test-image-001.jpg";
+
+    // Act
+    const thumborMapper = new ThumborMapper();
+    const edits = thumborMapper.mapPathToEdits(path);
+
+    // Assert
+    const expectedResult = {
+      edits: {
+        smartCrop: {
+          faceIndex: 1,
+          padding: 40,
+        },
+      },
+    };
+    expect(edits).toEqual(expectedResult.edits);
+  });
+
+  it("Should pass if smart crop filter is provided with valid numbers with a space", () => {
+    // Arrange
+    const path = "filters:smart_crop(1, 40)/test-image-001.jpg";
+
+    // Act
+    const thumborMapper = new ThumborMapper();
+    const edits = thumborMapper.mapPathToEdits(path);
+
+    // Assert
+    const expectedResult = {
+      edits: {
+        smartCrop: {
+          faceIndex: 1,
+          padding: 40,
+        },
+      },
+    };
+    expect(edits).toEqual(expectedResult.edits);
+  });
+
+  it("Should pass if smart crop filter is provided with only padding", () => {
+    // Arrange
+    const path = "filters:smart_crop(,40)/test-image-001.jpg";
+
+    // Act
+    const thumborMapper = new ThumborMapper();
+    const edits = thumborMapper.mapPathToEdits(path);
+
+    // Assert
+    const expectedResult = {
+      edits: {
+        smartCrop: {
+          faceIndex: undefined,
+          padding: 40,
+        },
+      },
+    };
+    expect(edits).toEqual(expectedResult.edits);
+  });
+
+  it("Should pass if smart crop filter is provided with only faceIndex", () => {
+    // Arrange
+    const path = "filters:smart_crop(1)/test-image-001.jpg";
+
+    // Act
+    const thumborMapper = new ThumborMapper();
+    const edits = thumborMapper.mapPathToEdits(path);
+
+    // Assert
+    const expectedResult = {
+      edits: {
+        smartCrop: {
+          faceIndex: 1,
+          padding: undefined,
+        },
+      },
+    };
+    expect(edits).toEqual(expectedResult.edits);
+  });
+
+  it("Should pass if smart crop filter is provided with only faceIndex and comma", () => {
+    // Arrange
+    const path = "filters:smart_crop(1,)/test-image-001.jpg";
+
+    // Act
+    const thumborMapper = new ThumborMapper();
+    const edits = thumborMapper.mapPathToEdits(path);
+
+    // Assert
+    const expectedResult = {
+      edits: {
+        smartCrop: {
+          faceIndex: 1,
+          padding: undefined,
+        },
+      },
+    };
+    expect(edits).toEqual(expectedResult.edits);
+  });
+
+  it("Should pass if smart crop filter is provided with too many parameters", () => {
+    // Arrange
+    const path = "filters:smart_crop(1,40,50)/test-image-001.jpg";
+
+    // Act
+    const thumborMapper = new ThumborMapper();
+    const edits = thumborMapper.mapPathToEdits(path);
+
+    // Assert
+    const expectedResult = {
+      edits: {
+        smartCrop: {
+          faceIndex: 1,
+          padding: 40,
+        },
+      },
+    };
+    expect(edits).toEqual(expectedResult.edits);
+  });
+
+  it("Should pass using smart crop with thumbor filter chaining", () => {
+    // Arrange
+    const path = "/fit-in/200x300/filters:grayscale():smart_crop(1,40)/test-image-001.jpg";
+
+    // Act
+    const thumborMapper = new ThumborMapper();
+    const edits = thumborMapper.mapPathToEdits(path);
+
+    // Assert
+    const expectedResult = {
+      edits: {
+        resize: {
+          width: 200,
+          height: 300,
+          fit: "inside",
+        },
+        grayscale: true,
+        smartCrop: {
+          faceIndex: 1,
+          padding: 40,
+        },
+      },
+    };
+    expect(edits).toEqual(expectedResult.edits);
+  });
+
+  it("Should pass using smart crop with regular thumbor filters", () => {
+    // Arrange
+    const path = "/fit-in/200x300/filters:grayscale()/filters:smart_crop(1,40)/test-image-001.jpg";
+
+    // Act
+    const thumborMapper = new ThumborMapper();
+    const edits = thumborMapper.mapPathToEdits(path);
+
+    // Assert
+    const expectedResult = {
+      edits: {
+        resize: {
+          width: 200,
+          height: 300,
+          fit: "inside",
+        },
+        grayscale: true,
+        smartCrop: {
+          faceIndex: 1,
+          padding: 40,
+        },
+      },
+    };
+    expect(edits).toEqual(expectedResult.edits);
+  });
+
+  it("Should return NaN if non numeric values are provided to smart crop", () => {
+    // Arrange
+    const path = "/filters:smart_crop(some,value)/test-image-001.jpg";
+
+    // Act
+    const thumborMapper = new ThumborMapper();
+    const edits = thumborMapper.mapPathToEdits(path);
+
+    // Assert
+    const expectedResult = {
+      edits: {
+        smartCrop: {
+          faceIndex: NaN,
+          padding: NaN,
         },
       },
     };

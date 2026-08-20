@@ -4,7 +4,6 @@
  */
 
 import { CDKAssetPackager } from "./asset-packager";
-import path from "path";
 
 export async function handler(cdkAssetFolderPath: string | undefined, outputPath: string | undefined) {
   if (!cdkAssetFolderPath || !outputPath) throw new Error("undefined input path");
@@ -14,6 +13,7 @@ export async function handler(cdkAssetFolderPath: string | undefined, outputPath
     await assetPackager.createAssetZip(path);
   }
   await assetPackager.moveZips(outputPath);
+  await assetPackager.moveJsons(outputPath);
 }
 
 if (require.main === module) {

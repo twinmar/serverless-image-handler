@@ -8,7 +8,6 @@ import { Construct } from "constructs";
 import { addCfnCondition } from "../../utils/utils";
 import { SolutionConstructProps } from "../types";
 import { CustomResourcesConstruct } from "./custom-resources/custom-resource-construct";
-import * as appreg from "@aws-cdk/aws-servicecatalogappregistry-alpha";
 
 export interface CommonResourcesProps extends SolutionConstructProps {
   readonly solutionId: string;
@@ -21,13 +20,12 @@ export interface Conditions {
   readonly enableSignatureCondition: CfnCondition;
   readonly enableDefaultFallbackImageCondition: CfnCondition;
   readonly enableCorsCondition: CfnCondition;
-}
-
-export interface AppRegistryApplicationProps {
-  readonly description: string;
-  readonly solutionId: string;
-  readonly applicationName: string;
-  readonly solutionVersion: string;
+  readonly autoWebPCondition: CfnCondition;
+  readonly enableOriginShieldCondition: CfnCondition;
+  readonly enableS3ObjectLambdaCondition: CfnCondition;
+  readonly disableS3ObjectLambdaCondition: CfnCondition;
+  readonly isLogRetentionPeriodInfinite: CfnCondition;
+  readonly useExistingCloudFrontDistributionCondition: CfnCondition;
 }
 
 /**
@@ -54,6 +52,24 @@ export class CommonResources extends Construct {
       }),
       enableCorsCondition: new CfnCondition(this, "EnableCorsCondition", {
         expression: Fn.conditionEquals(props.corsEnabled, "Yes"),
+      }),
+      autoWebPCondition: new CfnCondition(this, "AutoWebPCondition", {
+        expression: Fn.conditionEquals(props.autoWebP, "Yes"),
+      }),
+      enableOriginShieldCondition: new CfnCondition(this, "EnableOriginShieldCondition", {
+        expression: Fn.conditionNot(Fn.conditionEquals(props.originShieldRegion, "Disabled")),
+      }),
+      enableS3ObjectLambdaCondition: new CfnCondition(this, "EnableS3ObjectLambdaCondition", {
+        expression: Fn.conditionEquals(props.enableS3ObjectLambda, "Yes"),
+      }),
+      disableS3ObjectLambdaCondition: new CfnCondition(this, "DisableS3ObjectLambdaCondition", {
+        expression: Fn.conditionNot(Fn.conditionEquals(props.enableS3ObjectLambda, "Yes")),
+      }),
+      isLogRetentionPeriodInfinite: new CfnCondition(this, "IsLogRetentionPeriodInfinite", {
+        expression: Fn.conditionEquals(props.logRetentionPeriod, "Infinite"),
+      }),
+      useExistingCloudFrontDistributionCondition: new CfnCondition(this, "UseExistingCloudFrontDistributionCondition", {
+        expression: Fn.conditionEquals(props.useExistingCloudFrontDistribution, "Yes"),
       }),
     };
 
@@ -85,32 +101,4 @@ export class CommonResources extends Construct {
 
     this.logsBucket = this.customResources.createLogBucket();
   }
-
-  public appRegistryApplication(props: AppRegistryApplicationProps) {
-    const stack = Stack.of(this);
-    const applicationType = "AWS-Solutions";
-
-    const application = new appreg.Application(stack, "AppRegistry", {
-      applicationName: Fn.join("-", ["AppRegistry", Aws.STACK_NAME, Aws.REGION, Aws.ACCOUNT_ID]),
-      description: `Service Catalog application to track and manage all your resources for the solution ${props.applicationName}`,
-    });
-    application.associateApplicationWithStack(stack);
-
-    Tags.of(application).add("Solutions:SolutionID", props.solutionId);
-    Tags.of(application).add("Solutions:SolutionName", props.applicationName);
-    Tags.of(application).add("Solutions:SolutionVersion", props.solutionVersion);
-    Tags.of(application).add("Solutions:ApplicationType", applicationType);
-
-    const attributeGroup = new appreg.AttributeGroup(stack, "DefaultApplicationAttributeGroup", {
-      attributeGroupName: `A30-AppRegistry-${Aws.STACK_NAME}`,
-      description: "Attribute group for solution information",
-      attributes: {
-        applicationType,
-        version: props.solutionVersion,
-        solutionID: props.solutionId,
-        solutionName: props.applicationName,
-      },
-    });
-    attributeGroup.associateWith(application);
-  }
-}
+}  
