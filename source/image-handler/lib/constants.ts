@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 export const ALTERNATE_EDIT_ALLOWLIST_ARRAY = [
+  "textOverlay",
   "overlayWith",
   "smartCrop",
   "roundCrop",

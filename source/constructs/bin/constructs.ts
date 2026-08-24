@@ -11,7 +11,7 @@ let synthesizer = new DefaultStackSynthesizer({
 });
 
 // Solutions pipeline deployment
-const { DIST_OUTPUT_BUCKET, SOLUTION_NAME, VERSION, SOLUTION_ID } = process.env;
+const { DIST_OUTPUT_BUCKET, SOLUTION_NAME, VERSION, SOLUTION_ID, STACK_NAME } = process.env;
 const { PUBLIC_ECR_REGISTRY } = process.env;
 if (DIST_OUTPUT_BUCKET && SOLUTION_NAME && VERSION)
   synthesizer = new DefaultStackSynthesizer({
@@ -31,8 +31,10 @@ const solutionVersion = VERSION ?? app.node.tryGetContext("solutionVersion");
 const solutionName = SOLUTION_NAME ?? app.node.tryGetContext("solutionName");
 const solutionId = SOLUTION_ID ?? app.node.tryGetContext("solutionId");
 const description = `(${solutionId}) - ${solutionDisplayName}. Version ${solutionVersion}`;
+const stackName = STACK_NAME ?? app.node.tryGetContext("stackName") ?? "v7-Stack";
 
 new ServerlessImageHandlerStack(app, "v7-Stack", {
+  stackName,
   synthesizer,
   description,
   solutionId,

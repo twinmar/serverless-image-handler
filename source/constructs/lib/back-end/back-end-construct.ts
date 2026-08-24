@@ -121,6 +121,8 @@ export class BackEnd extends Construct {
         SOLUTION_VERSION: props.solutionVersion,
         SOLUTION_ID: props.solutionId,
         SHARP_SIZE_LIMIT: props.sharpSizeLimit,
+        BRANDING_BUCKET: props.brandingBucket,
+        FONTCONFIG_FILE: "/var/task/fonts.conf",
       },
       bundling: {
         externalModules: ["sharp"],
@@ -136,6 +138,11 @@ export class BackEnd extends Construct {
             return [
               `cd ${outputDir}`,
               "rm -rf node_modules/sharp && npm install --cpu=x64 --os=linux --libc=glibc sharp", // npm 10.4.0+ --libc=glibc is needed for the platform-specific deps to be installed when cross-compiling sharp from mac to linux
+
+              // Copy custom fonts into the Lambda bundle
+              `mkdir -p ${outputDir}/fonts`,
+              `cp -R ${inputDir}/../image-handler/fonts/. ${outputDir}/fonts/`,
+              `cp ${inputDir}/../image-handler/fonts.conf ${outputDir}/fonts.conf`,
             ];
           },
         },

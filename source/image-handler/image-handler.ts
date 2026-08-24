@@ -218,6 +218,11 @@ export class ImageHandler {
         }
       }
     }
+
+    if (edits.textOverlay) {
+      originalImage = await this.applyTextOverlay(originalImage, edits);
+    }
+
     // Return the modified image
     return originalImage;
   }
@@ -531,7 +536,7 @@ export class ImageHandler {
    */
   private async applyGreyBackground(originalImage: sharp.Sharp, edits: ImageEdits): Promise<void> {
     let imageMetadata: sharp.Metadata = await originalImage.metadata();
-    let bucket = "soletrader-productimages";
+    let bucket = process.env.BRANDING_BUCKET?.trim();
     let key = "grey.jpg";
 
     if (edits.resize) {
@@ -563,6 +568,207 @@ export class ImageHandler {
     const extendOptions: sharp.ExtendOptions = this.calcExtendOptions(imageMetadata, edits);
     originalImage.extend(extendOptions)
     }
+
+  /**
+   * Applies adding text overlay to images.
+   * @param originalImage The original sharp image.
+   * @param edits The edits to be made to the original image.
+   */
+  private async applyTextOverlay(
+    originalImage: sharp.Sharp,
+    edits: ImageEdits
+  ): Promise<sharp.Sharp> {
+    const options = edits.textOverlay;
+
+    if (!options) {
+      return originalImage;
+    }
+
+    const {
+      brand,
+      name,
+      wasPrice,
+      nowPrice,
+      padding = 40,
+    } = options;
+
+    /*
+    * Finish everything that's already queued so we get
+    * the actual final dimensions.
+    */
+    const { data, info } = await originalImage.toBuffer({
+      resolveWithObject: true,
+    });
+
+    const width = info.width;
+    const height = info.height;
+
+    const imageMetadata = await sharp(data).metadata();
+
+    const logo = await this.getOverlayImage(
+      process.env.BRANDING_BUCKET?.trim(),
+      "logo.png",
+      "35",   // max 35% of image width
+      "100",  // height won't be the limiting dimension
+      "0",    // no additional transparency
+      imageMetadata
+    );
+
+    const logoMetadata = await sharp(logo).metadata();
+    const logoHeight = logoMetadata.height ?? 0;
+
+    const accentX = padding;
+    const accentY = padding;
+    const accentWidth = Math.max(4, Math.round(width * 0.006));
+    const accentHeight = Math.round(width * 0.10);
+
+    const textX = accentX + accentWidth + Math.round(width * 0.03);
+
+    const brandFontSize = Math.round(width * 0.05);
+    const nameFontSize = Math.round(width * 0.032);
+
+    const brandY = padding + brandFontSize;
+    const nameY = brandY + Math.round(nameFontSize * 1.5);
+
+    const priceRightX = width - padding;
+    const priceBottomY = height - padding;
+
+    const priceFontSize = Math.round(width * 0.04);
+    const wasPriceFontSize = Math.round(width * 0.028);
+
+    const textSvg = Buffer.from(`
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="${width}"
+        height="${height}"
+        viewBox="0 0 ${width} ${height}"
+      >
+        <rect
+          x="${accentX}"
+          y="${accentY}"
+          width="${accentWidth}"
+          height="${accentHeight}"
+          fill="#f58220"
+        />
+
+        ${
+          brand
+            ? `
+              <text
+                x="${textX}"
+                y="${brandY}"
+                font-family="Poppins"
+                font-size="${brandFontSize}"
+                font-weight="700"
+                fill="#000000"
+              >${this.escapeXml(brand)}</text>
+            `
+            : ""
+        }
+
+        ${
+          name
+            ? `
+              <text
+                x="${textX}"
+                y="${nameY}"
+                font-family="Poppins"
+                font-size="${nameFontSize}"
+                font-weight="400"
+                fill="#666666"
+              >${this.escapeXml(name)}</text>
+            `
+            : ""
+        }
+
+        ${
+        nowPrice && (nowPrice == wasPrice || !wasPrice)
+          ? `
+            <text
+              x="${priceRightX}"
+              y="${priceBottomY}"
+              text-anchor="end"
+              font-family="Poppins"
+              font-size="${priceFontSize}"
+              font-weight="400"
+              fill="#111111"
+            >${this.escapeXml(nowPrice)}</text>
+          `
+          : ""
+      }
+
+      ${
+        nowPrice && wasPrice && wasPrice != nowPrice
+          ? `
+            <text
+              x="${priceRightX}"
+              y="${priceBottomY - Math.round(priceFontSize * 1.1)}"
+              text-anchor="end"
+              font-family="Poppins"
+              font-size="${wasPriceFontSize}"
+              font-weight="400"
+              fill="#777777"
+              text-decoration="line-through"
+            >${this.escapeXml(wasPrice)}</text>
+
+            <text
+              x="${priceRightX}"
+              y="${priceBottomY}"
+              text-anchor="end"
+              font-family="Poppins"
+              font-size="${priceFontSize}"
+              font-weight="400"
+              fill="#d71920"
+            >${this.escapeXml(nowPrice)}</text>
+          `
+          : ""
+      }
+      </svg>
+    `);
+
+    /*
+    * Logo goes bottom-left.
+    */
+    const logoLeft = padding;
+    const logoTop = Math.max(
+      0,
+      height - padding - logoHeight
+    );
+
+    return sharp(data).composite([
+      {
+        input: textSvg,
+        left: 0,
+        top: 0,
+        blend: "over",
+      },
+      {
+        input: logo,
+        left: logoLeft,
+        top: logoTop,
+        blend: "over",
+      },
+    ]);
+  }
+
+  private escapeXml(value: string): string {
+    return value.replace(/[<>&'"]/g, (char) => {
+      switch (char) {
+        case "<":
+          return "&lt;";
+        case ">":
+          return "&gt;";
+        case "&":
+          return "&amp;";
+        case "'":
+          return "&apos;";
+        case '"':
+          return "&quot;";
+        default:
+          return char;
+      }
+    });
+  }
 
   /**
    * Checks whether an edit needs to be skipped or not.

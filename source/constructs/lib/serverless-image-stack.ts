@@ -52,6 +52,14 @@ export class ServerlessImageHandlerStack extends Stack {
       constraintDescription: "Source bucket is required. Please provide at least one valid S3 bucket name that is present in your account.",
     });
 
+    const brandingBucketParameter = new CfnParameter(this, "BrandingBucketParameter", {
+      type: "String",
+      description:
+        "S3 bucket containing branding assets such as grey.jpg and logo.png.",
+      allowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$",
+      constraintDescription: "Please provide a valid S3 bucket name.",
+    });
+
     const deployDemoUIParameter = new CfnParameter(this, "DeployDemoUIParameter", {
       type: "String",
       description:
@@ -237,6 +245,7 @@ export class ServerlessImageHandlerStack extends Stack {
       corsEnabled: corsEnabledParameter.valueAsString,
       corsOrigin: corsOriginParameter.valueAsString,
       sourceBuckets: sourceBucketsParameter.valueAsString,
+      brandingBucket: brandingBucketParameter.valueAsString,
       deployUI: deployDemoUIParameter.valueAsString as YesNo,
       logRetentionPeriod: logRetentionPeriodParameter.valueAsString,
       autoWebP: autoWebPParameter.valueAsString,
@@ -340,7 +349,7 @@ export class ServerlessImageHandlerStack extends Stack {
           },
           {
             Label: { default: "Image Sources" },
-            Parameters: [sourceBucketsParameter.logicalId],
+            Parameters: [sourceBucketsParameter.logicalId, brandingBucketParameter.logicalId],
           },
           {
             Label: { default: "Demo UI" },
