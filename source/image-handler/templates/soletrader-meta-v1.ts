@@ -21,16 +21,14 @@ const HEIGHT = 1080;
 const BACKGROUND = "#f4f4f4";
 
 /*
- * Product always targets this width.
- *
- * We intentionally do NOT specify a height.
- * Sharp calculates the resulting height from
- * the source image's aspect ratio.
+ * Product targets this width, unless doing so would
+ * make it too tall for the available space.
  */
 const PRODUCT_WIDTH = 800;
 
 /*
- * Vertical gap between the product and logo.
+ * Gap between the bottom of the product image and the
+ * top of the Soletrader logo.
  */
 const PRODUCT_LOGO_GAP = 45;
 
@@ -48,6 +46,12 @@ const NAME_FONT_SIZE = 35;
 
 const BRAND_Y = 94;
 const NAME_Y = 147;
+
+/*
+ * Maximum top position the product is allowed to reach.
+ * This keeps the product sitting just below the top text.
+ */
+const PRODUCT_TOP_Y = NAME_Y + 40;
 
 const PRICE_RIGHT_X = WIDTH - PADDING;
 const PRICE_BOTTOM_Y = HEIGHT - PADDING;
@@ -80,41 +84,8 @@ export const soletraderMetaV1: ProductTemplate<SoletraderMetaV1Data> = {
     const sourceBuffer = await originalImage.toBuffer();
 
     /*
-     * Resize using WIDTH ONLY.
-     *
-     * A source image with a taller aspect ratio therefore
-     * produces a taller rendered product, while a wider
-     * image produces a shorter rendered product.
-     */
-    const productBuffer = await sharp(sourceBuffer)
-      .rotate()
-      .resize({
-        width: PRODUCT_WIDTH,
-        withoutEnlargement: true,
-      })
-      .png()
-      .toBuffer();
-
-    const productMetadata =
-      await sharp(productBuffer).metadata();
-
-    const productWidth =
-      productMetadata.width ?? 0;
-
-    const productHeight =
-      productMetadata.height ?? 0;
-
-    /*
-     * Keep the product horizontally centred.
-     *
-     * Its vertical position is NOT centred.
-     */
-    const productLeft = Math.round(
-      (WIDTH - productWidth) / 2
-    );
-
-    /*
-     * Load Soletrader logo.
+     * Load Soletrader logo first, because the available
+     * product space depends on where the logo sits.
      */
     const rawLogo = await getS3Image(
       context.s3Client,
@@ -130,11 +101,8 @@ export const soletraderMetaV1: ProductTemplate<SoletraderMetaV1Data> = {
       })
       .toBuffer();
 
-    const logoMetadata =
-      await sharp(logo).metadata();
-
-    const logoHeight =
-      logoMetadata.height ?? 0;
+    const logoMetadata = await sharp(logo).metadata();
+    const logoHeight = logoMetadata.height ?? 0;
 
     const logoLeft = PADDING;
 
@@ -147,15 +115,55 @@ export const soletraderMetaV1: ProductTemplate<SoletraderMetaV1Data> = {
     );
 
     /*
-     * Product is now positioned relative to the logo.
-     *
-     * Its bottom edge sits 45px above the top of the logo.
+     * Product bottom sits a fixed distance above the logo.
      */
-    const productBottom =
-      logoTop - PRODUCT_LOGO_GAP;
+    const productBottom = logoTop - PRODUCT_LOGO_GAP;
 
-    const productTop =
-      productBottom - productHeight;
+    /*
+     * Maximum height available to the product image.
+     * If a product would be too tall at 800px wide,
+     * Sharp will scale it down to fit inside this height.
+     */
+    const productMaxHeight = Math.max(
+      1,
+      productBottom - PRODUCT_TOP_Y
+    );
+
+    /*
+     * Try to render at 800px wide, but constrain height
+     * so the product never overlaps the top metadata area.
+     */
+    const productBuffer = await sharp(sourceBuffer)
+      .rotate()
+      .resize({
+        width: PRODUCT_WIDTH,
+        height: productMaxHeight,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .png()
+      .toBuffer();
+
+    const productMetadata =
+      await sharp(productBuffer).metadata();
+
+    const productWidth = productMetadata.width ?? 0;
+    const productHeight = productMetadata.height ?? 0;
+
+    /*
+     * Keep the product horizontally centred.
+     */
+    const productLeft = Math.round(
+      (WIDTH - productWidth) / 2
+    );
+
+    /*
+     * Anchor the product from the bottom.
+     */
+    const productTop = Math.max(
+      PRODUCT_TOP_Y,
+      productBottom - productHeight
+    );
 
     /*
      * Fixed square background.
