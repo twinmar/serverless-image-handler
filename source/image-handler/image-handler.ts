@@ -26,6 +26,7 @@ import {
 } from "./lib";
 import { getAllowedSourceBuckets } from "./image-request";
 import { SHARP_EDIT_ALLOWLIST_ARRAY } from "./lib/constants";
+import { renderTemplate, TemplateRequest } from "./templates";
 
 export class ImageHandler {
   constructor(private readonly s3Client: S3Client, private readonly rekognitionClient: RekognitionClient) {}
@@ -222,6 +223,20 @@ export class ImageHandler {
     if (edits.textOverlay) {
       originalImage = await this.applyTextOverlay(originalImage, edits);
     }
+
+    if (edits.template) {
+      originalImage = await renderTemplate(
+        originalImage,
+        edits.template as TemplateRequest,
+        {
+          s3Client: this.s3Client,
+          sourceBucket:
+            getAllowedSourceBuckets()[0],
+          brandingBucket:
+            process.env.BRANDING_BUCKET?.trim(),
+        }
+      );
+    };
 
     // Return the modified image
     return originalImage;
