@@ -12,10 +12,13 @@ import {
 
 import { soletraderMetaV1 } from "./soletrader-meta-v1";
 import { soleMetaV1 } from "./sole-meta-v1";
+import { soletraderMetaBfV1 } from "./soletrader-meta-bf-v1";
+
 
 const templates = {
   "soletrader-meta-v1": soletraderMetaV1,
   "sole-meta-v1": soleMetaV1,
+  "soletrader-meta-bf-v1": soletraderMetaBfV1,
 };
 
 export async function renderTemplate(
