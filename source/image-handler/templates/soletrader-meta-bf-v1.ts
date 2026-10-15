@@ -69,7 +69,7 @@ const NOW_PRICE_LEFT_X = 565;
  * Only remove pixels that are very close to pure white.
  * Keep white and light-coloured product details opaque.
  */
-const WHITE_THRESHOLD_START = 253;
+const WHITE_THRESHOLD_START = 252;
 const WHITE_THRESHOLD_END = 255;
 
 export const soletraderMetaBfV1: ProductTemplate<SoletraderMetaBfV1Data> = {
